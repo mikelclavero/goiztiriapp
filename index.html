@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Goiztiri FS · Panel de Gestión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:        #0D1117;
+  --surface:   #161B22;
+  --raised:    #21262D;
+  --border:    #30363D;
+  --accent:    #238636;
+  --accent-h:  #2EA043;
+  --blue:      #1F6FEB;
+  --blue-h:    #388BFD;
+  --danger:    #DA3633;
+  --danger-h:  #F85149;
+  --gold:      #D29922;
+  --text:      #E6EDF3;
+  --muted:     #7D8590;
+  --success:   #238636;
+  --sidebar-w: 220px;
+  --header-h:  52px;
+}
+html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
+input, select, textarea, button { font-family: inherit; font-size: 13px; }
+button { cursor: pointer; border: none; outline: none; }
+a { color: var(--blue-h); text-decoration: none; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Login screen ── */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.login-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 40px 36px; width: 340px;
+}
+.login-logo {
+  text-align: center; margin-bottom: 28px;
+}
+.login-logo .club-name {
+  font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.5px;
+}
+.login-logo .club-sub {
+  font-size: 12px; color: var(--muted); margin-top: 2px;
+}
+.login-box label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
+.login-box input[type=password], .login-box input[type=email] {
+  width: 100%; padding: 9px 12px; background: var(--raised); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); outline: none; transition: border-color .15s;
+}
+.login-box input[type=password]:focus, .login-box input[type=email]:focus { border-color: var(--accent); }
+.login-error { color: var(--danger); font-size: 12px; margin-top: 8px; min-height: 16px; }
+.btn-login {
+  width: 100%; margin-top: 16px; padding: 10px; background: var(--accent);
+  color: #fff; border-radius: 6px; font-weight: 600; font-size: 13px;
+  transition: background .15s;
+}
+.btn-login:hover { background: var(--accent-h); }
+
+/* ── App layout ── */
+#app { display: none; height: 100vh; overflow: hidden; }
+#app.visible { display: flex; flex-direction: column; }
+
+/* Header */
+.app-header {
+  height: var(--header-h); background: var(--surface); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 16px; flex-shrink: 0; z-index: 10;
+}
+.app-header .brand { font-weight: 700; font-size: 15px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.app-header .brand span { color: var(--accent); }
+.header-spacer { flex: 1; }
+.btn-logout {
+  padding: 5px 12px; background: transparent; border: 1px solid var(--border);
+  color: var(--muted); border-radius: 5px; font-size: 12px; transition: all .15s;
+}
+.btn-logout:hover { border-color: var(--danger); color: var(--danger); }
+
+/* Body */
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar */
+.sidebar {
+  width: var(--sidebar-w); background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+}
+.nav-section { padding: 16px 12px 6px; }
+.nav-label { font-size: 10px; color: var(--muted); font-weight: 600; letter-spacing: .5px; padding: 0 8px; margin-bottom: 4px; text-transform: uppercase; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+  border-radius: 6px; color: var(--muted); cursor: pointer;
+  transition: all .12s; font-weight: 500; user-select: none;
+}
+.nav-item:hover { background: var(--raised); color: var(--text); }
+.nav-item.active { background: rgba(35,134,54,.15); color: var(--accent); }
+.nav-item .icon { font-size: 15px; width: 18px; text-align: center; }
+.nav-divider { height: 1px; background: var(--border); margin: 8px 12px; }
+
+/* Main content */
+.main-content { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+.section-view { display: none; flex: 1; overflow: hidden; flex-direction: column; }
+.section-view.active { display: flex; }
+
+/* Section header */
+.section-header {
+  padding: 16px 24px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0; flex-wrap: wrap;
+}
+.section-title { font-size: 16px; font-weight: 600; flex: 1; }
+.stats-row { display: flex; gap: 8px; }
+.stat-chip {
+  padding: 4px 10px; background: var(--raised); border: 1px solid var(--border);
+  border-radius: 20px; font-size: 11px; color: var(--muted); font-weight: 500;
+}
+.stat-chip.green { border-color: rgba(35,134,54,.4); color: var(--accent); background: rgba(35,134,54,.08); }
+.stat-chip.red { border-color: rgba(218,54,51,.4); color: var(--danger); background: rgba(218,54,51,.08); }
+
+/* Toolbar */
+.toolbar {
+  padding: 10px 24px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+}
+.search-input {
+  padding: 7px 12px; background: var(--raised); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); outline: none; width: 220px; transition: border-color .15s;
+}
+.search-input:focus { border-color: var(--blue); }
+.search-input::placeholder { color: var(--muted); }
+.btn { padding: 7px 14px; border-radius: 6px; font-weight: 500; font-size: 12px; transition: all .15s; display: inline-flex; align-items: center; gap: 5px; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-h); }
+.btn-secondary { background: var(--raised); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { border-color: var(--muted); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border); }
+.btn-danger:hover { background: rgba(218,54,51,.1); border-color: var(--danger); }
+.btn-gold { background: transparent; color: var(--gold); border: 1px solid var(--border); }
+.btn-gold:hover { background: rgba(210,153,34,.1); border-color: var(--gold); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.spacer { flex: 1; }
+
+/* Table */
+.table-wrap { flex: 1; overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  padding: 9px 16px; text-align: left; font-size: 11px; font-weight: 600;
+  color: var(--muted); border-bottom: 1px solid var(--border);
+  background: var(--surface); position: sticky; top: 0; z-index: 2; white-space: nowrap;
+  cursor: pointer; user-select: none;
+}
+thead th:hover { color: var(--text); }
+thead th.sort-asc::after { content: ' ↑'; color: var(--accent); }
+thead th.sort-desc::after { content: ' ↓'; color: var(--accent); }
+tbody tr { border-bottom: 1px solid var(--border); transition: background .08s; }
+tbody tr:hover { background: var(--raised); }
+tbody tr.selected { background: rgba(31,111,235,.1); }
+tbody td { padding: 10px 16px; color: var(--text); vertical-align: middle; }
+tbody td.muted { color: var(--muted); }
+.badge {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px;
+  font-size: 11px; font-weight: 500;
+}
+.badge-green { background: rgba(35,134,54,.15); color: #3FB950; border: 1px solid rgba(63,185,80,.2); }
+.badge-red { background: rgba(218,54,51,.12); color: #F85149; border: 1px solid rgba(248,81,73,.2); }
+.badge-blue { background: rgba(31,111,235,.12); color: #79C0FF; border: 1px solid rgba(121,192,255,.2); }
+.badge-gold { background: rgba(210,153,34,.12); color: #E3B341; border: 1px solid rgba(227,179,65,.2); }
+.badge-gray { background: var(--raised); color: var(--muted); border: 1px solid var(--border); }
+.btn-bank { background: none; border: none; color: var(--gold); cursor: pointer; font-size: 12px; padding: 3px 6px; border-radius: 4px; transition: background .12s; }
+.btn-bank:hover { background: rgba(210,153,34,.12); }
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); }
+.empty-state .icon { font-size: 32px; margin-bottom: 12px; }
+.loading { text-align: center; padding: 40px; color: var(--muted); }
+
+/* Drawer */
+.drawer-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.drawer-overlay.open { opacity: 1; pointer-events: all; }
+.drawer {
+  position: fixed; top: 0; right: 0; height: 100vh; width: 400px; max-width: 95vw;
+  background: var(--surface); border-left: 1px solid var(--border);
+  z-index: 101; transform: translateX(100%); transition: transform .22s cubic-bezier(.4,0,.2,1);
+  display: flex; flex-direction: column;
+}
+.drawer.open { transform: translateX(0); }
+.drawer-header {
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.drawer-title { font-size: 15px; font-weight: 600; }
+.btn-close { background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; padding: 4px; border-radius: 4px; transition: color .12s; }
+.btn-close:hover { color: var(--text); }
+.drawer-body { flex: 1; overflow-y: auto; padding: 20px; }
+.drawer-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+.drawer-footer .btn { flex: 1; justify-content: center; padding: 9px; }
+
+/* Form elements */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 5px; }
+.form-group input, .form-group select, .form-group textarea {
+  width: 100%; padding: 8px 10px; background: var(--raised); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); outline: none; transition: border-color .15s;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--blue); }
+.form-group select option { background: var(--raised); }
+.form-group textarea { resize: vertical; min-height: 72px; }
+.form-group input[type=checkbox] { width: auto; margin-right: 6px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.form-row.thirds { grid-template-columns: 1fr 1fr 1fr; }
+.form-section-title { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin: 18px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: var(--text); }
+.checkbox-label input { accent-color: var(--accent); width: 14px; height: 14px; }
+
+/* Bank section in drawer */
+.bank-section { background: rgba(210,153,34,.06); border: 1px solid rgba(210,153,34,.2); border-radius: 8px; padding: 14px; margin-top: 4px; }
+.bank-grid { display: grid; grid-template-columns: 60px 60px 60px 44px 1fr; gap: 6px; }
+.bank-grid input { padding: 7px 8px; font-size: 12px; }
+.bank-grid input::placeholder { font-size: 11px; }
+
+/* Equipo pills */
+.team-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.team-pill {
+  padding: 5px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  cursor: pointer; border: 1px solid transparent; transition: all .12s;
+  background: var(--raised); color: var(--muted); border-color: var(--border);
+}
+.team-pill:hover { color: var(--text); }
+.team-pill.active { color: #fff; border-color: transparent; }
+.team-pill.all { background: var(--raised); color: var(--text); border-color: var(--border); }
+.team-pill.all.active { background: var(--accent); color: #fff; border-color: transparent; }
+
+/* Toast */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+  color: #fff; animation: toast-in .2s ease; box-shadow: 0 4px 12px rgba(0,0,0,.4);
+}
+.toast.success { background: #1A4D2E; border: 1px solid var(--accent); }
+.toast.error   { background: #4D1A1A; border: 1px solid var(--danger); }
+@keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* Confirm dialog */
+.confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200;
+  display: none; align-items: center; justify-content: center;
+}
+.confirm-overlay.open { display: flex; }
+.confirm-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 24px; width: 340px; max-width: 90vw;
+}
+.confirm-box h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+.confirm-box p { color: var(--muted); font-size: 13px; margin-bottom: 20px; line-height: 1.5; }
+.confirm-btns { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Campus specific */
+.campus-selector {
+  padding: 10px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap;
+}
+.campus-selector label { font-size: 12px; color: var(--muted); }
+.campus-selector select {
+  padding: 6px 10px; background: var(--raised); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text); outline: none;
+}
+
+/* Jugadores sidebar */
+.jugadores-layout { display: flex; flex: 1; overflow: hidden; }
+.teams-sidebar {
+  width: 200px; border-right: 1px solid var(--border); overflow-y: auto;
+  flex-shrink: 0; background: var(--surface);
+}
+.teams-sidebar-header {
+  padding: 10px 12px 6px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1;
+}
+.teams-sidebar-header span { font-size: 11px; font-weight: 600; color: var(--muted); }
+.btn-add-team { background: none; border: none; color: var(--accent); font-size: 18px; line-height: 1; cursor: pointer; }
+.team-item {
+  padding: 9px 12px; display: flex; align-items: center; gap: 8px;
+  cursor: pointer; transition: background .1s; border-bottom: 1px solid var(--border);
+  font-size: 12px; color: var(--muted);
+}
+.team-item:hover { background: var(--raised); color: var(--text); }
+.team-item.active { background: rgba(35,134,54,.1); color: var(--accent); }
+.team-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
+.team-count { margin-left: auto; font-size: 10px; background: var(--raised); padding: 1px 5px; border-radius: 10px; color: var(--muted); }
+.jugadores-main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar { width: 0; overflow: hidden; }
+  .form-row { grid-template-columns: 1fr; }
+  .bank-grid { grid-template-columns: 1fr 1fr; }
+  .section-header { gap: 8px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="club-name">⚽ Goiztiri <span>FS</span></div>
+      <div class="club-sub">Panel de Gestión · Junta Directiva</div>
+    </div>
+    <label for="email-input">Email</label>
+    <input type="email" id="email-input" placeholder="tu@email.com" autocomplete="username">
+    <label for="pw-input" style="margin-top:12px">Contraseña</label>
+    <input type="password" id="pw-input" placeholder="Introduce la contraseña" autocomplete="current-password">
+    <div class="login-error" id="login-error"></div>
+    <button class="btn-login" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <header class="app-header">
+    <div class="brand">⚽ <span>Goiztiri</span> FS</div>
+    <div class="header-spacer"></div>
+    <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
+  </header>
+  <div class="app-body">
+    <!-- Sidebar nav -->
+    <nav class="sidebar">
+      <div class="nav-section">
+        <div class="nav-label">Gestión</div>
+        <div class="nav-item active" onclick="switchSection('socios')" id="nav-socios">
+          <span class="icon">👥</span> Socios
+        </div>
+        <div class="nav-item" onclick="switchSection('jugadores')" id="nav-jugadores">
+          <span class="icon">⚽</span> Jugadores
+        </div>
+        <div class="nav-item" onclick="switchSection('campus')" id="nav-campus">
+          <span class="icon">🏕️</span> Campus
+        </div>
+        <div class="nav-item" onclick="switchSection('colaboradores')" id="nav-colaboradores">
+          <span class="icon">🤝</span> Colaboradores
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main -->
+    <main class="main-content">
+
+      <!-- ══ SOCIOS ══ -->
+      <div class="section-view active" id="view-socios">
+        <div class="section-header">
+          <div class="section-title">Socios</div>
+          <div class="stats-row">
+            <div class="stat-chip" id="stat-socios-total">Total: 0</div>
+            <div class="stat-chip green" id="stat-socios-activos">Activos: 0</div>
+            <div class="stat-chip red" id="stat-socios-bajas">Bajas: 0</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" type="text" placeholder="Buscar socio..." id="search-socios" oninput="filterSocios()">
+          <div style="display:flex;gap:6px;flex-wrap:wrap" id="cat-filters">
+            <button class="btn btn-secondary" onclick="setCatFilter('todos')" id="cf-todos" style="border-color:var(--accent);color:var(--accent)">Todos</button>
+            <button class="btn btn-secondary" onclick="setCatFilter('Aficionado')" id="cf-aficionado">Aficionados</button>
+            <button class="btn btn-secondary" onclick="setCatFilter('Directiva')" id="cf-directiva">Directiva</button>
+            <button class="btn btn-secondary" onclick="setCatFilter('Jugador')" id="cf-jugador">Jugadores</button>
+          </div>
+          <div class="spacer"></div>
+          <button class="btn btn-danger" id="btn-delete-socio" disabled onclick="deleteSocio()">🗑 Eliminar</button>
+          <button class="btn btn-primary" onclick="openDrawer('socio', null)">＋ Nuevo socio</button>
+        </div>
+        <div class="table-wrap">
+          <table id="table-socios">
+            <thead>
+              <tr>
+                <th onclick="sortTable('socios','num_socio')">Nº</th>
+                <th onclick="sortTable('socios','nombre')">Nombre</th>
+                <th onclick="sortTable('socios','telefono')">Teléfono</th>
+                <th onclick="sortTable('socios','categoria')">Categoría</th>
+                <th onclick="sortTable('socios','activo')">Estado</th>
+                <th>Banco</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-socios"></tbody>
+          </table>
+          <div class="loading" id="loading-socios">Cargando...</div>
+          <div class="empty-state" id="empty-socios" style="display:none">
+            <div class="icon">👥</div>
+            <div>No hay socios que mostrar</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ JUGADORES ══ -->
+      <div class="section-view" id="view-jugadores">
+        <div class="section-header">
+          <div class="section-title" id="jugadores-title">Todos los jugadores</div>
+          <div class="stats-row">
+            <div class="stat-chip" id="stat-jug-total">Total: 0</div>
+            <div class="stat-chip green" id="stat-jug-activos">Activos: 0</div>
+          </div>
+          <button class="btn btn-danger" id="btn-delete-jug" disabled onclick="deleteJugador()" style="margin-left:auto">🗑 Eliminar</button>
+          <button class="btn btn-primary" onclick="openDrawer('jugador', null)">＋ Nuevo jugador</button>
+        </div>
+        <div class="jugadores-layout">
+          <div class="teams-sidebar" id="teams-sidebar">
+            <div class="teams-sidebar-header">
+              <span>Equipos</span>
+              <button class="btn-add-team" title="Nuevo equipo" onclick="openDrawer('equipo',null)">＋</button>
+            </div>
+            <div id="teams-list"></div>
+          </div>
+          <div class="jugadores-main">
+            <div class="toolbar">
+              <input class="search-input" type="text" placeholder="Buscar jugador..." id="search-jugadores" oninput="filterJugadores()">
+            </div>
+            <div class="table-wrap">
+              <table id="table-jugadores">
+                <thead>
+                  <tr>
+                    <th onclick="sortTable('jugadores','dorsal')">Dorsal</th>
+                    <th onclick="sortTable('jugadores','nombre')">Nombre</th>
+                    <th onclick="sortTable('jugadores','fecha_nacimiento')">F. Nacimiento</th>
+                    <th onclick="sortTable('jugadores','telefono')">Teléfono</th>
+                    <th>Equipo</th>
+                    <th onclick="sortTable('jugadores','activo')">Estado</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-jugadores"></tbody>
+              </table>
+              <div class="loading" id="loading-jugadores">Cargando...</div>
+              <div class="empty-state" id="empty-jugadores" style="display:none">
+                <div class="icon">⚽</div>
+                <div>No hay jugadores en este equipo</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ CAMPUS ══ -->
+      <div class="section-view" id="view-campus">
+        <div class="section-header">
+          <div class="section-title">Campus</div>
+          <div class="stats-row">
+            <div class="stat-chip" id="stat-campus-total">Inscritos: 0</div>
+          </div>
+          <button class="btn btn-danger" id="btn-delete-part" disabled onclick="deleteParticipante()" style="margin-left:auto">🗑 Eliminar</button>
+          <button class="btn btn-secondary" onclick="openDrawer('campus-edit', null)">＋ Nuevo campus</button>
+          <button class="btn btn-primary" onclick="openDrawer('participante', null)">＋ Inscripción</button>
+        </div>
+        <div class="campus-selector">
+          <label>Campus activo:</label>
+          <select id="campus-select" onchange="loadParticipantes()"></select>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" type="text" placeholder="Buscar participante..." id="search-campus" oninput="filterParticipantes()">
+        </div>
+        <div class="table-wrap">
+          <table id="table-campus">
+            <thead>
+              <tr>
+                <th onclick="sortTable('campus','nombre')">Nombre</th>
+                <th onclick="sortTable('campus','apellidos')">Apellidos</th>
+                <th onclick="sortTable('campus','anio_nacimiento')">Año nac.</th>
+                <th>Teléfonos</th>
+                <th>Talla</th>
+                <th>Empadronado</th>
+                <th>IMD</th>
+                <th>Alergias</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-campus"></tbody>
+          </table>
+          <div class="loading" id="loading-campus">Cargando...</div>
+          <div class="empty-state" id="empty-campus" style="display:none">
+            <div class="icon">🏕️</div>
+            <div>No hay participantes inscritos</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ COLABORADORES ══ -->
+      <div class="section-view" id="view-colaboradores">
+        <div class="section-header">
+          <div class="section-title">Colaboradores</div>
+          <div class="stats-row">
+            <div class="stat-chip" id="stat-colab-total">Total: 0</div>
+            <div class="stat-chip green" id="stat-colab-activos">Activos: 0</div>
+          </div>
+          <button class="btn btn-danger" id="btn-delete-colab" disabled onclick="deleteColaborador()" style="margin-left:auto">🗑 Eliminar</button>
+          <button class="btn btn-primary" onclick="openDrawer('colaborador', null)">＋ Nuevo colaborador</button>
+        </div>
+        <div class="toolbar">
+          <input class="search-input" type="text" placeholder="Buscar colaborador..." id="search-colaboradores" oninput="filterColaboradores()">
+        </div>
+        <div class="table-wrap">
+          <table id="table-colaboradores">
+            <thead>
+              <tr>
+                <th onclick="sortTable('colaboradores','nombre')">Establecimiento</th>
+                <th>NIF</th>
+                <th>Contacto</th>
+                <th onclick="sortTable('colaboradores','cuota')">Cuota</th>
+                <th>Forma pago</th>
+                <th onclick="sortTable('colaboradores','activo')">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-colaboradores"></tbody>
+          </table>
+          <div class="loading" id="loading-colaboradores">Cargando...</div>
+          <div class="empty-state" id="empty-colaboradores" style="display:none">
+            <div class="icon">🤝</div>
+            <div>No hay colaboradores registrados</div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ── DRAWER ── -->
+<div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="main-drawer">
+  <div class="drawer-header">
+    <div class="drawer-title" id="drawer-title">Nuevo registro</div>
+    <button class="btn-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="drawer-body" id="drawer-body"></div>
+  <div class="drawer-footer">
+    <button class="btn btn-secondary" onclick="closeDrawer()">Cancelar</button>
+    <button class="btn btn-primary" id="btn-save-drawer" onclick="saveDrawer()">Guardar</button>
+  </div>
+</div>
+
+<!-- ── CONFIRM ── -->
+<div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <h3 id="confirm-title">¿Confirmar acción?</h3>
+    <p id="confirm-msg"></p>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="closeConfirm()">Cancelar</button>
+      <button class="btn btn-danger" id="confirm-ok">Eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOASTS ── -->
+<div class="toast-container" id="toasts"></div>
+
+<script>
+// ════════════════════════════════════════════════════════════
+// CONFIGURACIÓN SUPABASE
+// (la anon key es pública por diseño; la seguridad real la dan
+//  el login de Supabase Auth + las políticas RLS del SQL)
+// ════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://ljnxabzeirubvvkfuihb.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqbnhhYnplaXJ1YnZ2a2Z1aWhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA4NTAwNDksImV4cCI6MjEwNjQyNjA0OX0.62AHWOxSiaIhNpNhuhOSdZ9rKWOiqyASF-E5eH3vo04';
+
+// ════════════════════════════════════════════════════════════
+// SESIÓN (Supabase Auth, email + contraseña)
+// ════════════════════════════════════════════════════════════
+let session = null;
+try { session = JSON.parse(sessionStorage.getItem('sb_session')); } catch (e) { session = null; }
+
+function saveSession(d) {
+  session = {
+    access_token: d.access_token,
+    refresh_token: d.refresh_token,
+    expires_at: Date.now() + (d.expires_in || 3600) * 1000
+  };
+  sessionStorage.setItem('sb_session', JSON.stringify(session));
+}
+
+async function authRequest(grant, body) {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=${grant}`, {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error_description || data.msg || `HTTP ${res.status}`);
+  return data;
+}
+
+async function getToken() {
+  if (!session) throw new Error('Sesión no iniciada');
+  if (Date.now() > session.expires_at - 60000) {
+    try { saveSession(await authRequest('refresh_token', { refresh_token: session.refresh_token })); }
+    catch (e) { doLogout(); throw new Error('Sesión caducada'); }
+  }
+  return session.access_token;
+}
+
+// ════════════════════════════════════════════════════════════
+// SUPABASE CLIENT (sin librería externa)
+// ════════════════════════════════════════════════════════════
+const sb = {
+  async req(method, table, opts = {}) {
+    let url = `${SUPABASE_URL}/rest/v1/${table}`;
+    const params = [];
+    if (opts.select)  params.push(`select=${opts.select}`);
+    if (opts.filter)  params.push(opts.filter);
+    if (opts.order)   params.push(`order=${opts.order}`);
+    if (opts.limit)   params.push(`limit=${opts.limit}`);
+    if (params.length) url += '?' + params.join('&');
+
+    const token = await getToken();
+    const headers = {
+      'apikey': SUPABASE_KEY,
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    };
+    if (method === 'GET') headers['Accept'] = 'application/json';
+
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    return method === 'DELETE' ? null : res.json();
+  },
+  get:    (t, o) => sb.req('GET',    t, o),
+  post:   (t, o) => sb.req('POST',   t, o),
+  patch:  (t, o) => sb.req('PATCH',  t, o),
+  delete: (t, o) => sb.req('DELETE', t, o),
+};
+
+// ════════════════════════════════════════════════════════════
+// LOGIN
+// ════════════════════════════════════════════════════════════
+async function doLogin() {
+  const email = document.getElementById('email-input').value.trim();
+  const pw = document.getElementById('pw-input').value;
+  const err = document.getElementById('login-error');
+  err.textContent = '';
+  try {
+    saveSession(await authRequest('password', { email, password: pw }));
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    initApp();
+  } catch (e) {
+    err.textContent = 'Email o contraseña incorrectos';
+    document.getElementById('pw-input').value = '';
+  }
+}
+function doLogout() {
+  sessionStorage.removeItem('sb_session');
+  location.reload();
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('email-input').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+if (session) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').classList.add('visible');
+  window.addEventListener('DOMContentLoaded', initApp);
+}
+
+// ════════════════════════════════════════════════════════════
+// APP STATE
+// ════════════════════════════════════════════════════════════
+const state = {
+  socios: [], sociosFilt: [], selectedSocio: null, catFilter: 'todos',
+  jugadores: [], jugadoresFilt: [], selectedJugador: null,
+  equiposJug: [], selectedEquipo: null,
+  campusList: [], participantes: [], partFilt: [], selectedPart: null,
+  colaboradores: [], colabFilt: [], selectedColab: null,
+  drawerMode: null, drawerRecord: null,
+  sortState: {},
+};
+
+// ════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════
+function initApp() {
+  loadSocios();
+}
+
+// ════════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════════
+function switchSection(name) {
+  document.querySelectorAll('.section-view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'socios'       && !state.socios.length)      loadSocios();
+  if (name === 'jugadores'    && !state.equiposJug.length)  loadJugadores();
+  if (name === 'campus'       && !state.campusList.length)  loadCampus();
+  if (name === 'colaboradores'&& !state.colaboradores.length) loadColaboradores();
+}
+
+// ════════════════════════════════════════════════════════════
+// TOAST & CONFIRM
+// ════════════════════════════════════════════════════════════
+function toast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toasts').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+let confirmCb = null;
+function confirm2(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-overlay').classList.add('open');
+  document.getElementById('confirm-ok').onclick = () => { closeConfirm(); cb(); };
+  confirmCb = cb;
+}
+function closeConfirm() { document.getElementById('confirm-overlay').classList.remove('open'); }
+
+// ════════════════════════════════════════════════════════════
+// DRAWER
+// ════════════════════════════════════════════════════════════
+function openDrawer(mode, record) {
+  state.drawerMode = mode;
+  state.drawerRecord = record;
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('main-drawer').classList.add('open');
+  renderDrawerContent(mode, record);
+}
+function closeDrawer() {
+  document.getElementById('drawer-overlay').classList.remove('open');
+  document.getElementById('main-drawer').classList.remove('open');
+  state.drawerMode = null; state.drawerRecord = null;
+}
+function renderDrawerContent(mode, rec) {
+  const title = document.getElementById('drawer-title');
+  const body  = document.getElementById('drawer-body');
+  const isEdit = !!rec;
+
+  if (mode === 'socio') {
+    title.textContent = isEdit ? 'Editar socio' : 'Nuevo socio';
+    body.innerHTML = `
+      <div class="form-row">
+        <div class="form-group"><label>Nº Socio *</label><input id="f-num_socio" type="number" value="${rec?.num_socio||''}"></div>
+        <div class="form-group"><label>Categoría</label>
+          <select id="f-categoria">
+            ${['Aficionado','Jugador','Entrenador','Directiva'].map(c=>`<option value="${c}" ${rec?.categoria===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Nombre completo *</label><input id="f-nombre" value="${rec?.nombre||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Teléfono</label><input id="f-telefono" value="${rec?.telefono||''}"></div>
+        <div class="form-group"><label>Email</label><input id="f-email" type="email" value="${rec?.email||''}"></div>
+      </div>
+      <label class="checkbox-label" style="margin-bottom:10px">
+        <input type="checkbox" id="f-menor_8_anos" ${rec?.menor_8_anos?'checked':''}> Menor de 8 años (exento)
+      </label><br>
+      <label class="checkbox-label" style="margin-bottom:16px">
+        <input type="checkbox" id="f-activo" ${!rec||rec?.activo?'checked':''}> Socio activo
+      </label>
+      <div class="form-section-title" style="color:var(--gold)">🏦 Datos bancarios (opcional)</div>
+      <div class="bank-section">
+        <div class="bank-grid">
+          <input id="f-ban_iban" placeholder="ES00" maxlength="4" value="${rec?.ban_iban||''}">
+          <input id="f-ban_entidad" placeholder="0000" maxlength="4" value="${rec?.ban_entidad||''}">
+          <input id="f-ban_sucursal" placeholder="0000" maxlength="4" value="${rec?.ban_sucursal||''}">
+          <input id="f-ban_dc" placeholder="00" maxlength="2" value="${rec?.ban_dc||''}">
+          <input id="f-ban_cuenta" placeholder="Nº cuenta (10 dígitos)" maxlength="10" value="${rec?.ban_cuenta||''}">
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px">IBAN · Entidad · Sucursal · D.C. · Nº Cuenta</div>
+      </div>`;
+  }
+
+  else if (mode === 'jugador') {
+    title.textContent = isEdit ? 'Editar jugador' : 'Nuevo jugador';
+    const equipoOpts = state.equiposJug.map(e => `<option value="${e.id_equipo}" ${rec?.id_equipo===e.id_equipo?'selected':''}>${e.nombre}</option>`).join('');
+    body.innerHTML = `
+      <div class="form-row">
+        <div class="form-group"><label>Nombre *</label><input id="f-nombre" value="${rec?.nombre||''}"></div>
+        <div class="form-group"><label>Primer apellido *</label><input id="f-apellido1" value="${rec?.apellido1||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Segundo apellido</label><input id="f-apellido2" value="${rec?.apellido2||''}"></div>
+        <div class="form-group"><label>DNI</label><input id="f-dni" value="${rec?.dni||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>F. Nacimiento</label><input id="f-fecha_nacimiento" type="date" value="${rec?.fecha_nacimiento||''}"></div>
+        <div class="form-group"><label>Lugar nacimiento</label><input id="f-lugar_nacimiento" value="${rec?.lugar_nacimiento||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Teléfono</label><input id="f-telefono" value="${rec?.telefono||''}"></div>
+        <div class="form-group"><label>Población</label><input id="f-poblacion" value="${rec?.poblacion||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Equipo</label><select id="f-id_equipo"><option value="">— Sin equipo —</option>${equipoOpts}</select></div>
+        <div class="form-group"><label>Dorsal</label><input id="f-dorsal" type="number" value="${rec?.dorsal||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha mutua</label><input id="f-fecha_mutua" type="date" value="${rec?.fecha_mutua||''}"></div>
+        <div class="form-group">
+          <label>IMD Abonado</label>
+          <label class="checkbox-label" style="margin-top:8px"><input type="checkbox" id="f-imd_abonado" ${rec?.imd_abonado?'checked':''}> Sí</label>
+        </div>
+      </div>
+      <div class="form-section-title">Tallas equipación</div>
+      <div class="form-row thirds">
+        <div class="form-group"><label>Mochila</label><input id="f-talla_mochila" value="${rec?.talla_mochila||''}"></div>
+        <div class="form-group"><label>Sudadera</label><input id="f-talla_sudadera" value="${rec?.talla_sudadera||''}"></div>
+        <div class="form-group"><label>Camiseta ent.</label><input id="f-talla_camiseta_ent" value="${rec?.talla_camiseta_ent||''}"></div>
+      </div>
+      <div class="form-row thirds">
+        <div class="form-group"><label>Camiseta jug.</label><input id="f-talla_camiseta_jug" value="${rec?.talla_camiseta_jug||''}"></div>
+        <div class="form-group"><label>Pantalón</label><input id="f-talla_pantalon" value="${rec?.talla_pantalon||''}"></div>
+        <div class="form-group"><label>Medias</label><input id="f-talla_medias" value="${rec?.talla_medias||''}"></div>
+      </div>
+      <div class="form-group"><label>Peto</label><input id="f-talla_peto" value="${rec?.talla_peto||''}"></div>
+      <label class="checkbox-label" style="margin-top:4px">
+        <input type="checkbox" id="f-activo" ${!rec||rec?.activo?'checked':''}> Jugador activo
+      </label>`;
+  }
+
+  else if (mode === 'equipo') {
+    title.textContent = isEdit ? 'Editar equipo' : 'Nuevo equipo';
+    const cats = state.campusList; // reuse for categoria if needed
+    body.innerHTML = `
+      <div class="form-group"><label>Nombre del equipo *</label><input id="f-nombre" value="${rec?.nombre||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Temporada</label><input id="f-temporada" value="${rec?.temporada||'2026/27'}"></div>
+        <div class="form-group"><label>Entrenador</label><input id="f-entrenador" value="${rec?.entrenador||''}"></div>
+      </div>`;
+  }
+
+  else if (mode === 'campus-edit') {
+    title.textContent = isEdit ? 'Editar campus' : 'Nuevo campus';
+    body.innerHTML = `
+      <div class="form-group"><label>Nombre del campus *</label><input id="f-nombre" value="${rec?.nombre||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Fecha inicio</label><input id="f-fecha_inicio" type="date" value="${rec?.fecha_inicio||''}"></div>
+        <div class="form-group"><label>Fecha fin</label><input id="f-fecha_fin" type="date" value="${rec?.fecha_fin||''}"></div>
+      </div>
+      <div class="form-group"><label>Descripción</label><textarea id="f-descripcion">${rec?.descripcion||''}</textarea></div>
+      <label class="checkbox-label">
+        <input type="checkbox" id="f-activo" ${!rec||rec?.activo?'checked':''}> Campus activo
+      </label>`;
+  }
+
+  else if (mode === 'participante') {
+    title.textContent = isEdit ? 'Editar participante' : 'Nueva inscripción';
+    const campusId = document.getElementById('campus-select')?.value;
+    body.innerHTML = `
+      <div class="form-row">
+        <div class="form-group"><label>Nombre *</label><input id="f-nombre" value="${rec?.nombre||''}"></div>
+        <div class="form-group"><label>Apellidos *</label><input id="f-apellidos" value="${rec?.apellidos||''}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Año nacimiento</label><input id="f-anio_nacimiento" type="number" value="${rec?.anio_nacimiento||''}"></div>
+        <div class="form-group"><label>Talla camiseta</label><input id="f-talla_camiseta" value="${rec?.talla_camiseta||''}"></div>
+      </div>
+      <div class="form-group"><label>Email contacto</label><input id="f-email_contacto" type="email" value="${rec?.email_contacto||''}"></div>
+      <div class="form-group"><label>Teléfonos</label><input id="f-telefonos" value="${rec?.telefonos||''}" placeholder="653 74 18 67 Ama"></div>
+      <div class="form-group"><label>Alergias</label><input id="f-alergias" value="${rec?.alergias||''}"></div>
+      <div class="form-group"><label>Otro deporte</label><input id="f-otro_deporte" value="${rec?.otro_deporte||''}"></div>
+      <div class="form-group"><label>Observaciones</label><textarea id="f-observaciones">${rec?.observaciones||''}</textarea></div>
+      <div class="form-section-title">Consentimientos</div>
+      <label class="checkbox-label" style="margin-bottom:8px">
+        <input type="checkbox" id="f-empadronado_santurtzi" ${rec?.empadronado_santurtzi?'checked':''}> Empadronado en Santurtzi
+      </label><br>
+      <label class="checkbox-label" style="margin-bottom:8px">
+        <input type="checkbox" id="f-abonado_imd" ${rec?.abonado_imd?'checked':''}> Abonado IMD
+      </label><br>
+      <label class="checkbox-label" style="margin-bottom:8px">
+        <input type="checkbox" id="f-consentimiento_datos" ${!rec||rec?.consentimiento_datos?'checked':''}> Consentimiento datos
+      </label><br>
+      <label class="checkbox-label">
+        <input type="checkbox" id="f-consentimiento_imagen" ${!rec||rec?.consentimiento_imagen?'checked':''}> Consentimiento imagen
+      </label>`;
+  }
+
+  else if (mode === 'colaborador') {
+    title.textContent = isEdit ? 'Editar colaborador' : 'Nuevo colaborador';
+    body.innerHTML = `
+      <div class="form-group"><label>Nombre / Establecimiento *</label><input id="f-nombre" value="${rec?.nombre||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>NIF</label><input id="f-nif" value="${rec?.nif||''}"></div>
+        <div class="form-group"><label>Cuota (€)</label><input id="f-cuota" type="number" step="0.01" value="${rec?.cuota||''}"></div>
+      </div>
+      <div class="form-group"><label>Forma de pago</label>
+        <select id="f-forma_pago">
+          ${['Domiciliación','Transferencia','Efectivo','Otro'].map(o=>`<option value="${o}" ${rec?.forma_pago===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label>Persona de contacto</label><input id="f-persona_contacto" value="${rec?.persona_contacto||''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Teléfono</label><input id="f-telefono" value="${rec?.telefono||''}"></div>
+        <div class="form-group"><label>Email</label><input id="f-email" type="email" value="${rec?.email||''}"></div>
+      </div>
+      <label class="checkbox-label" style="margin-top:8px">
+        <input type="checkbox" id="f-activo" ${!rec||rec?.activo?'checked':''}> Colaborador activo
+      </label>`;
+  }
+}
+
+function getField(id) {
+  const el = document.getElementById(id);
+  if (!el) return undefined;
+  if (el.type === 'checkbox') return el.checked ? 1 : 0;
+  if (el.type === 'number')   return el.value === '' ? null : Number(el.value);
+  return el.value.trim() || null;
+}
+
+async function saveDrawer() {
+  const mode = state.drawerMode;
+  const rec  = state.drawerRecord;
+  try {
+    if (mode === 'socio') {
+      const num = getField('f-num_socio');
+      const nom = getField('f-nombre');
+      if (!num || !nom) { toast('Nº Socio y Nombre son obligatorios', 'error'); return; }
+      const data = {
+        num_socio: num, nombre: nom, categoria: getField('f-categoria'),
+        menor_8_anos: getField('f-menor_8_anos'), activo: getField('f-activo'),
+        telefono: getField('f-telefono'), email: getField('f-email'),
+        ban_iban: getField('f-ban_iban'), ban_entidad: getField('f-ban_entidad'),
+        ban_sucursal: getField('f-ban_sucursal'), ban_dc: getField('f-ban_dc'),
+        ban_cuenta: getField('f-ban_cuenta'),
+      };
+      if (rec) {
+        await sb.patch('socios', { filter: `idsocio=eq.${rec.idsocio}`, body: { ...data, updated_at: new Date().toISOString() } });
+      } else {
+        await sb.post('socios', { body: data });
+      }
+      closeDrawer(); await loadSocios(); toast(rec ? 'Socio actualizado ✔' : 'Socio añadido ✔');
+    }
+
+    else if (mode === 'jugador') {
+      const nom = getField('f-nombre'); const ap1 = getField('f-apellido1');
+      if (!nom || !ap1) { toast('Nombre y primer apellido son obligatorios', 'error'); return; }
+      const data = {
+        nombre: nom, apellido1: ap1, apellido2: getField('f-apellido2'),
+        dni: getField('f-dni'), fecha_nacimiento: getField('f-fecha_nacimiento'),
+        lugar_nacimiento: getField('f-lugar_nacimiento'), poblacion: getField('f-poblacion'),
+        telefono: getField('f-telefono'), fecha_mutua: getField('f-fecha_mutua'),
+        id_equipo: getField('f-id_equipo') || null, dorsal: getField('f-dorsal'),
+        imd_abonado: getField('f-imd_abonado'), activo: getField('f-activo'),
+        talla_mochila: getField('f-talla_mochila'), talla_sudadera: getField('f-talla_sudadera'),
+        talla_camiseta_ent: getField('f-talla_camiseta_ent'), talla_camiseta_jug: getField('f-talla_camiseta_jug'),
+        talla_pantalon: getField('f-talla_pantalon'), talla_medias: getField('f-talla_medias'),
+        talla_peto: getField('f-talla_peto'),
+      };
+      if (rec) {
+        await sb.patch('jugadores', { filter: `id_jugador=eq.${rec.id_jugador}`, body: { ...data, updated_at: new Date().toISOString() } });
+      } else {
+        await sb.post('jugadores', { body: data });
+      }
+      closeDrawer(); await loadJugadores(); toast(rec ? 'Jugador actualizado ✔' : 'Jugador añadido ✔');
+    }
+
+    else if (mode === 'equipo') {
+      const nom = getField('f-nombre');
+      if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+      const data = { nombre: nom, temporada: getField('f-temporada'), entrenador: getField('f-entrenador') };
+      if (rec) {
+        await sb.patch('equipos', { filter: `id_equipo=eq.${rec.id_equipo}`, body: data });
+      } else {
+        await sb.post('equipos', { body: data });
+      }
+      closeDrawer(); await loadJugadores(); toast(rec ? 'Equipo actualizado ✔' : 'Equipo creado ✔');
+    }
+
+    else if (mode === 'campus-edit') {
+      const nom = getField('f-nombre');
+      if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+      const data = { nombre: nom, fecha_inicio: getField('f-fecha_inicio'), fecha_fin: getField('f-fecha_fin'), descripcion: getField('f-descripcion'), activo: getField('f-activo') };
+      if (rec) {
+        await sb.patch('campus', { filter: `id_campus=eq.${rec.id_campus}`, body: { ...data, updated_at: new Date().toISOString() } });
+      } else {
+        await sb.post('campus', { body: data });
+      }
+      closeDrawer(); await loadCampus(); toast(rec ? 'Campus actualizado ✔' : 'Campus creado ✔');
+    }
+
+    else if (mode === 'participante') {
+      const nom = getField('f-nombre'); const ap = getField('f-apellidos');
+      if (!nom || !ap) { toast('Nombre y apellidos son obligatorios', 'error'); return; }
+      const campusId = parseInt(document.getElementById('campus-select')?.value);
+      const data = {
+        nombre: nom, apellidos: ap, email_contacto: getField('f-email_contacto'),
+        anio_nacimiento: getField('f-anio_nacimiento'), talla_camiseta: getField('f-talla_camiseta'),
+        telefonos: getField('f-telefonos'), alergias: getField('f-alergias'),
+        otro_deporte: getField('f-otro_deporte'), observaciones: getField('f-observaciones'),
+        empadronado_santurtzi: getField('f-empadronado_santurtzi'), abonado_imd: getField('f-abonado_imd'),
+        consentimiento_datos: getField('f-consentimiento_datos'), consentimiento_imagen: getField('f-consentimiento_imagen'),
+      };
+      if (rec) {
+        await sb.patch('participantes', { filter: `id_participante=eq.${rec.id_participante}`, body: { ...data, updated_at: new Date().toISOString() } });
+      } else {
+        const part = await sb.post('participantes', { body: data });
+        const pid = Array.isArray(part) ? part[0].id_participante : part.id_participante;
+        if (campusId) await sb.post('inscripciones', { body: { id_campus: campusId, id_participante: pid, fecha_inscripcion: new Date().toISOString() } });
+      }
+      closeDrawer(); await loadParticipantes(); toast(rec ? 'Participante actualizado ✔' : 'Inscripción registrada ✔');
+    }
+
+    else if (mode === 'colaborador') {
+      const nom = getField('f-nombre');
+      if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+      const data = {
+        nombre: nom, nif: getField('f-nif'), cuota: getField('f-cuota'),
+        forma_pago: getField('f-forma_pago'), persona_contacto: getField('f-persona_contacto'),
+        telefono: getField('f-telefono'), email: getField('f-email'), activo: getField('f-activo'),
+      };
+      if (rec) {
+        await sb.patch('establecimientos', { filter: `idestablecimiento=eq.${rec.idestablecimiento}`, body: { ...data, updated_at: new Date().toISOString() } });
+      } else {
+        await sb.post('establecimientos', { body: data });
+      }
+      closeDrawer(); await loadColaboradores(); toast(rec ? 'Colaborador actualizado ✔' : 'Colaborador añadido ✔');
+    }
+  } catch(e) {
+    console.error(e);
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+// SORT
+// ════════════════════════════════════════════════════════════
+function sortTable(section, col) {
+  const key = section + '.' + col;
+  const asc = state.sortState[key] !== 'asc';
+  state.sortState = {}; state.sortState[key] = asc ? 'asc' : 'desc';
+  document.querySelectorAll(`#table-${section} th`).forEach(th => th.className = '');
+  event.target.className = asc ? 'sort-asc' : 'sort-desc';
+  const arr = section === 'socios' ? state.sociosFilt
+            : section === 'jugadores' ? state.jugadoresFilt
+            : section === 'campus' ? state.partFilt
+            : state.colabFilt;
+  arr.sort((a, b) => {
+    const av = a[col] ?? ''; const bv = b[col] ?? '';
+    if (typeof av === 'number') return asc ? av - bv : bv - av;
+    return asc ? String(av).localeCompare(String(bv), 'es') : String(bv).localeCompare(String(av), 'es');
+  });
+  if (section === 'socios')    renderSocios();
+  if (section === 'jugadores') renderJugadores();
+  if (section === 'campus')    renderParticipantes();
+  if (section === 'colaboradores') renderColaboradores();
+}
+
+// ════════════════════════════════════════════════════════════
+// SOCIOS
+// ════════════════════════════════════════════════════════════
+async function loadSocios() {
+  document.getElementById('loading-socios').style.display = 'block';
+  document.getElementById('empty-socios').style.display = 'none';
+  try {
+    state.socios = await sb.get('socios', { select: '*', order: 'num_socio.asc' });
+    filterSocios();
+  } catch(e) { toast('Error cargando socios: ' + e.message, 'error'); }
+  document.getElementById('loading-socios').style.display = 'none';
+}
+
+function setCatFilter(cat) {
+  state.catFilter = cat;
+  document.querySelectorAll('#cat-filters .btn').forEach(b => {
+    b.style.borderColor = ''; b.style.color = '';
+  });
+  const btn = document.getElementById('cf-' + (cat === 'todos' ? 'todos' : cat.toLowerCase()));
+  if (btn) { btn.style.borderColor = 'var(--accent)'; btn.style.color = 'var(--accent)'; }
+  filterSocios();
+}
+
+function filterSocios() {
+  const q = document.getElementById('search-socios').value.toLowerCase();
+  state.sociosFilt = state.socios.filter(s => {
+    const matchCat = state.catFilter === 'todos' || s.categoria === state.catFilter;
+    const matchQ = !q || s.nombre?.toLowerCase().includes(q) || String(s.num_socio).includes(q) || s.email?.toLowerCase().includes(q) || s.telefono?.includes(q);
+    return matchCat && matchQ;
+  });
+  renderSocios();
+}
+
+function renderSocios() {
+  const tbody = document.getElementById('tbody-socios');
+  const empty = document.getElementById('empty-socios');
+  const rows = state.sociosFilt;
+  const activos = rows.filter(r => r.activo).length;
+  document.getElementById('stat-socios-total').textContent   = `Total: ${rows.length}`;
+  document.getElementById('stat-socios-activos').textContent = `Activos: ${activos}`;
+  document.getElementById('stat-socios-bajas').textContent   = `Bajas: ${rows.length - activos}`;
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(s => {
+    const estadoBadge = s.activo
+      ? (s.menor_8_anos ? '<span class="badge badge-blue">Activo (Exento)</span>' : '<span class="badge badge-green">Activo</span>')
+      : '<span class="badge badge-red">Baja</span>';
+    const bancoBadge = s.ban_iban
+      ? `<button class="btn-bank" onclick="showBank(event,${s.idsocio})">🔒 Ver</button>`
+      : '<span class="muted" style="color:var(--muted);font-size:12px">—</span>';
+    const catBadge = s.categoria === 'Directiva' ? 'badge-gold' : s.categoria === 'Jugador' ? 'badge-blue' : 'badge-gray';
+    return `<tr onclick="selectSocio(${s.idsocio})" ondblclick="openDrawer('socio',getSocio(${s.idsocio}))" id="row-socio-${s.idsocio}">
+      <td><b>${s.num_socio}</b></td>
+      <td>${s.nombre}</td>
+      <td class="muted">${s.telefono||'—'}</td>
+      <td><span class="badge ${catBadge}">${s.categoria||'Aficionado'}</span></td>
+      <td>${estadoBadge}</td>
+      <td>${bancoBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function getSocio(id) { return state.socios.find(s => s.idsocio === id); }
+function selectSocio(id) {
+  state.selectedSocio = id;
+  document.querySelectorAll('#tbody-socios tr').forEach(r => r.classList.remove('selected'));
+  const row = document.getElementById('row-socio-' + id);
+  if (row) row.classList.add('selected');
+  document.getElementById('btn-delete-socio').disabled = false;
+}
+
+function showBank(e, id) {
+  e.stopPropagation();
+  const s = getSocio(id);
+  if (!s) return;
+  const completa = s.ban_iban ? `${s.ban_iban} ${s.ban_entidad} ${s.ban_sucursal} ${s.ban_dc} ${s.ban_cuenta}` : '—';
+  alert(`Datos bancarios de ${s.nombre}\n\nIBAN: ${s.ban_iban||'—'}\nEntidad: ${s.ban_entidad||'—'}\nSucursal: ${s.ban_sucursal||'—'}\nD.C.: ${s.ban_dc||'—'}\nNº Cuenta: ${s.ban_cuenta||'—'}\n\nCompleta: ${completa}`);
+}
+
+async function deleteSocio() {
+  if (!state.selectedSocio) return;
+  const s = getSocio(state.selectedSocio);
+  confirm2('Eliminar socio', `¿Eliminar a "${s?.nombre}" permanentemente?`, async () => {
+    try {
+      await sb.delete('socios', { filter: `idsocio=eq.${state.selectedSocio}` });
+      state.selectedSocio = null;
+      document.getElementById('btn-delete-socio').disabled = true;
+      await loadSocios(); toast('Socio eliminado.');
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// JUGADORES
+// ════════════════════════════════════════════════════════════
+async function loadJugadores() {
+  document.getElementById('loading-jugadores').style.display = 'block';
+  try {
+    const [equipos, jugadores] = await Promise.all([
+      sb.get('equipos', { select: '*', order: 'nombre.asc' }),
+      sb.get('jugadores', { select: '*', order: 'apellido1.asc' }),
+    ]);
+    state.equiposJug = equipos;
+    state.jugadores  = jugadores;
+    renderTeamsSidebar();
+    filterJugadores();
+  } catch(e) { toast('Error cargando jugadores: ' + e.message, 'error'); }
+  document.getElementById('loading-jugadores').style.display = 'none';
+}
+
+function renderTeamsSidebar() {
+  const list = document.getElementById('teams-list');
+  const allActive = state.selectedEquipo === null;
+  list.innerHTML = `<div class="team-item ${allActive?'active':''}" onclick="selectEquipo(null)">
+    <span style="font-size:12px">⚽</span> Todos
+    <span class="team-count">${state.jugadores.length}</span>
+  </div>` + state.equiposJug.map(eq => {
+    const count = state.jugadores.filter(j => j.id_equipo === eq.id_equipo).length;
+    const active = state.selectedEquipo === eq.id_equipo;
+    return `<div class="team-item ${active?'active':''}" onclick="selectEquipo(${eq.id_equipo})" ondblclick="openDrawer('equipo',${JSON.stringify(eq).replace(/"/g,'&quot;')})">
+      <span class="team-dot" style="background:var(--accent)"></span>
+      ${eq.nombre}
+      <span class="team-count">${count}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectEquipo(id) {
+  state.selectedEquipo = id;
+  const eq = state.equiposJug.find(e => e.id_equipo === id);
+  document.getElementById('jugadores-title').textContent = eq ? `⚽ ${eq.nombre}` : 'Todos los jugadores';
+  renderTeamsSidebar();
+  filterJugadores();
+}
+
+function filterJugadores() {
+  const q = document.getElementById('search-jugadores').value.toLowerCase();
+  state.jugadoresFilt = state.jugadores.filter(j => {
+    const matchEq = state.selectedEquipo === null || j.id_equipo === state.selectedEquipo;
+    const nombre = `${j.nombre||''} ${j.apellido1||''} ${j.apellido2||''}`.toLowerCase();
+    const matchQ = !q || nombre.includes(q) || j.dni?.includes(q) || j.telefono?.includes(q);
+    return matchEq && matchQ;
+  });
+  renderJugadores();
+}
+
+function renderJugadores() {
+  const tbody = document.getElementById('tbody-jugadores');
+  const empty = document.getElementById('empty-jugadores');
+  const rows = state.jugadoresFilt;
+  const activos = rows.filter(r => r.activo).length;
+  document.getElementById('stat-jug-total').textContent   = `Total: ${rows.length}`;
+  document.getElementById('stat-jug-activos').textContent = `Activos: ${activos}`;
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(j => {
+    const eq = state.equiposJug.find(e => e.id_equipo === j.id_equipo);
+    const nombre = [j.nombre, j.apellido1, j.apellido2].filter(Boolean).join(' ');
+    const estadoBadge = j.activo ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Baja</span>';
+    return `<tr onclick="selectJugador(${j.id_jugador})" ondblclick="openDrawer('jugador',getJugador(${j.id_jugador}))" id="row-jug-${j.id_jugador}">
+      <td><b>${j.dorsal||'—'}</b></td>
+      <td>${nombre}</td>
+      <td class="muted">${j.fecha_nacimiento||'—'}</td>
+      <td class="muted">${j.telefono||'—'}</td>
+      <td>${eq ? `<span class="badge badge-blue">${eq.nombre}</span>` : '<span class="muted">—</span>'}</td>
+      <td>${estadoBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function getJugador(id) { return state.jugadores.find(j => j.id_jugador === id); }
+function selectJugador(id) {
+  state.selectedJugador = id;
+  document.querySelectorAll('#tbody-jugadores tr').forEach(r => r.classList.remove('selected'));
+  document.getElementById('row-jug-' + id)?.classList.add('selected');
+  document.getElementById('btn-delete-jug').disabled = false;
+}
+
+async function deleteJugador() {
+  if (!state.selectedJugador) return;
+  const j = getJugador(state.selectedJugador);
+  const nom = [j?.nombre, j?.apellido1].filter(Boolean).join(' ');
+  confirm2('Eliminar jugador', `¿Eliminar a "${nom}" permanentemente?`, async () => {
+    try {
+      await sb.delete('jugadores', { filter: `id_jugador=eq.${state.selectedJugador}` });
+      state.selectedJugador = null;
+      document.getElementById('btn-delete-jug').disabled = true;
+      await loadJugadores(); toast('Jugador eliminado.');
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// CAMPUS
+// ════════════════════════════════════════════════════════════
+async function loadCampus() {
+  document.getElementById('loading-campus').style.display = 'block';
+  try {
+    state.campusList = await sb.get('campus', { select: '*', order: 'fecha_inicio.desc' });
+    const sel = document.getElementById('campus-select');
+    sel.innerHTML = state.campusList.map(c => `<option value="${c.id_campus}" ${c.activo?'selected':''}>${c.nombre}</option>`).join('');
+    await loadParticipantes();
+  } catch(e) { toast('Error cargando campus: ' + e.message, 'error'); }
+  document.getElementById('loading-campus').style.display = 'none';
+}
+
+async function loadParticipantes() {
+  const campusId = document.getElementById('campus-select')?.value;
+  if (!campusId) return;
+  try {
+    const inscripciones = await sb.get('inscripciones', { select: 'id_participante', filter: `id_campus=eq.${campusId}` });
+    const ids = inscripciones.map(i => i.id_participante);
+    if (!ids.length) { state.participantes = []; state.partFilt = []; renderParticipantes(); return; }
+    state.participantes = await sb.get('participantes', { select: '*', filter: `id_participante=in.(${ids.join(',')})`, order: 'apellidos.asc' });
+    filterParticipantes();
+  } catch(e) { toast('Error: ' + e.message, 'error'); }
+}
+
+function filterParticipantes() {
+  const q = document.getElementById('search-campus').value.toLowerCase();
+  state.partFilt = state.participantes.filter(p =>
+    !q || `${p.nombre} ${p.apellidos}`.toLowerCase().includes(q) || p.telefonos?.includes(q)
+  );
+  renderParticipantes();
+}
+
+function renderParticipantes() {
+  const tbody = document.getElementById('tbody-campus');
+  const empty = document.getElementById('empty-campus');
+  const rows = state.partFilt;
+  document.getElementById('stat-campus-total').textContent = `Inscritos: ${rows.length}`;
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(p => `
+    <tr onclick="selectPart(${p.id_participante})" ondblclick="openDrawer('participante',getParticipante(${p.id_participante}))" id="row-part-${p.id_participante}">
+      <td>${p.nombre}</td>
+      <td>${p.apellidos}</td>
+      <td class="muted">${p.anio_nacimiento||'—'}</td>
+      <td class="muted" style="font-size:12px">${p.telefonos||'—'}</td>
+      <td class="muted">${p.talla_camiseta||'—'}</td>
+      <td>${p.empadronado_santurtzi ? '<span class="badge badge-green">Sí</span>' : '<span class="badge badge-gray">No</span>'}</td>
+      <td>${p.abonado_imd ? '<span class="badge badge-blue">Sí</span>' : '<span class="badge badge-gray">No</span>'}</td>
+      <td class="muted" style="font-size:12px">${p.alergias||'—'}</td>
+    </tr>`).join('');
+}
+
+function getParticipante(id) { return state.participantes.find(p => p.id_participante === id); }
+function selectPart(id) {
+  state.selectedPart = id;
+  document.querySelectorAll('#tbody-campus tr').forEach(r => r.classList.remove('selected'));
+  document.getElementById('row-part-' + id)?.classList.add('selected');
+  document.getElementById('btn-delete-part').disabled = false;
+}
+
+async function deleteParticipante() {
+  if (!state.selectedPart) return;
+  const p = getParticipante(state.selectedPart);
+  confirm2('Eliminar participante', `¿Eliminar a "${p?.nombre} ${p?.apellidos}"?`, async () => {
+    try {
+      const campusId = document.getElementById('campus-select')?.value;
+      await sb.delete('inscripciones', { filter: `id_participante=eq.${state.selectedPart}&id_campus=eq.${campusId}` });
+      state.selectedPart = null;
+      document.getElementById('btn-delete-part').disabled = true;
+      await loadParticipantes(); toast('Participante eliminado.');
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// COLABORADORES
+// ════════════════════════════════════════════════════════════
+async function loadColaboradores() {
+  document.getElementById('loading-colaboradores').style.display = 'block';
+  try {
+    state.colaboradores = await sb.get('establecimientos', { select: '*', order: 'nombre.asc' });
+    filterColaboradores();
+  } catch(e) { toast('Error cargando colaboradores: ' + e.message, 'error'); }
+  document.getElementById('loading-colaboradores').style.display = 'none';
+}
+
+function filterColaboradores() {
+  const q = document.getElementById('search-colaboradores').value.toLowerCase();
+  state.colabFilt = state.colaboradores.filter(c =>
+    !q || c.nombre?.toLowerCase().includes(q) || c.persona_contacto?.toLowerCase().includes(q) || c.nif?.includes(q)
+  );
+  renderColaboradores();
+}
+
+function renderColaboradores() {
+  const tbody = document.getElementById('tbody-colaboradores');
+  const empty = document.getElementById('empty-colaboradores');
+  const rows = state.colabFilt;
+  const activos = rows.filter(r => r.activo).length;
+  document.getElementById('stat-colab-total').textContent   = `Total: ${rows.length}`;
+  document.getElementById('stat-colab-activos').textContent = `Activos: ${activos}`;
+  if (!rows.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  tbody.innerHTML = rows.map(c => `
+    <tr onclick="selectColab(${c.idestablecimiento})" ondblclick="openDrawer('colaborador',getColab(${c.idestablecimiento}))" id="row-colab-${c.idestablecimiento}">
+      <td><b>${c.nombre}</b></td>
+      <td class="muted">${c.nif||'—'}</td>
+      <td class="muted">${c.persona_contacto||'—'}</td>
+      <td>${c.cuota ? `<b>${Number(c.cuota).toFixed(2)} €</b>` : '—'}</td>
+      <td class="muted">${c.forma_pago||'—'}</td>
+      <td>${c.activo ? '<span class="badge badge-green">Activo</span>' : '<span class="badge badge-red">Inactivo</span>'}</td>
+    </tr>`).join('');
+}
+
+function getColab(id) { return state.colaboradores.find(c => c.idestablecimiento === id); }
+function selectColab(id) {
+  state.selectedColab = id;
+  document.querySelectorAll('#tbody-colaboradores tr').forEach(r => r.classList.remove('selected'));
+  document.getElementById('row-colab-' + id)?.classList.add('selected');
+  document.getElementById('btn-delete-colab').disabled = false;
+}
+
+async function deleteColaborador() {
+  if (!state.selectedColab) return;
+  const c = getColab(state.selectedColab);
+  confirm2('Eliminar colaborador', `¿Eliminar "${c?.nombre}"?`, async () => {
+    try {
+      await sb.delete('establecimientos', { filter: `idestablecimiento=eq.${state.selectedColab}` });
+      state.selectedColab = null;
+      document.getElementById('btn-delete-colab').disabled = true;
+      await loadColaboradores(); toast('Colaborador eliminado.');
+    } catch(e) { toast('Error: ' + e.message, 'error'); }
+  });
+}
+</script>
+</body>
+</html>
