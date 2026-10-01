@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0000ed">
 <title>Goiztiri FS · Panel de Gestión</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -10,22 +11,22 @@
 /* ── Reset & base ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-  --bg:        #0D1117;
-  --surface:   #161B22;
-  --raised:    #21262D;
-  --border:    #30363D;
-  --accent:    #238636;
-  --accent-h:  #2EA043;
-  --blue:      #1F6FEB;
-  --blue-h:    #388BFD;
-  --danger:    #DA3633;
-  --danger-h:  #F85149;
-  --gold:      #D29922;
-  --text:      #E6EDF3;
-  --muted:     #7D8590;
-  --success:   #238636;
+  --bg:        #f4f6ff;
+  --surface:   #ffffff;
+  --raised:    #eef0ff;
+  --border:    #e0e4f7;
+  --accent:    #0000ed;
+  --accent-h:  #0000c2;
+  --blue:      #0000ed;
+  --blue-h:    #3d3dff;
+  --danger:    #dc2626;
+  --danger-h:  #b91c1c;
+  --gold:      #b7791f;
+  --text:      #0b0b2e;
+  --muted:     #6a6f94;
+  --success:   #16a34a;
   --sidebar-w: 220px;
-  --header-h:  52px;
+  --header-h:  56px;
 }
 html, body { height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); font-size: 13px; }
 input, select, textarea, button { font-family: inherit; font-size: 13px; }
@@ -305,6 +306,55 @@ tbody td.muted { color: var(--muted); }
   .bank-grid { grid-template-columns: 1fr 1fr; }
   .section-header { gap: 8px; }
 }
+
+/* ══ TEMA MODERNO · azul #0000ed + blanco ══ */
+html, body { font-size: 14px; -webkit-font-smoothing: antialiased; }
+#login-screen { background: linear-gradient(135deg, #0000ed 0%, #2b2bff 55%, #6a6aff 100%) !important; }
+.login-box { background: #fff !important; border: 0 !important; border-radius: 18px !important; box-shadow: 0 24px 60px rgba(0,0,60,.35) !important; position: relative; }
+.login-box input[type=password], .login-box input[type=email] { border-radius: 10px; padding: 11px 14px; }
+.btn-login { border-radius: 10px !important; padding: 12px !important; box-shadow: 0 6px 16px rgba(0,0,237,.3); }
+.app-header { background: #fff !important; border-bottom: 1px solid var(--border) !important; box-shadow: 0 1px 12px rgba(0,0,237,.06); }
+.app-header .brand { font-weight: 800; letter-spacing: -.2px; }
+.btn-logout { border-radius: 8px !important; }
+.sidebar { background: #fff !important; }
+.nav-item { border-radius: 10px !important; padding: 10px 12px !important; }
+.nav-item:hover { background: var(--raised) !important; color: var(--accent) !important; }
+.nav-item.active { background: var(--accent) !important; color: #fff !important; box-shadow: 0 4px 12px rgba(0,0,237,.28); }
+.team-item.active { background: rgba(0,0,237,.08) !important; color: var(--accent) !important; }
+.btn { border-radius: 8px !important; }
+.btn-primary { background: var(--accent) !important; color: #fff !important; box-shadow: 0 3px 10px rgba(0,0,237,.25); }
+.btn-primary:hover { background: var(--accent-h) !important; }
+.stat-chip { border-radius: 999px !important; background: #fff; border-color: var(--border); font-weight: 600; }
+.stat-chip.green { border-color: rgba(22,163,74,.35) !important; color: #15803d !important; background: rgba(22,163,74,.08) !important; }
+.section-title { font-weight: 800; letter-spacing: -.3px; }
+input, select, textarea { border-radius: 8px; }
+input:focus, select:focus, textarea:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 3px rgba(0,0,237,.12); outline: none; }
+table { border-collapse: separate; border-spacing: 0; }
+tbody tr:hover td { background: rgba(0,0,237,.04); }
+.main-drawer { box-shadow: -12px 0 40px rgba(0,0,60,.18); }
+.toast { border-radius: 10px !important; }
+
+/* selector de idioma */
+.lang-switch { display: inline-flex; background: var(--raised); border-radius: 999px; padding: 3px; gap: 2px; margin-right: 10px; }
+.lang-switch button { background: transparent; color: var(--muted); font-weight: 700; font-size: 11px; padding: 5px 11px; border-radius: 999px; letter-spacing: .4px; }
+.lang-switch button.on { background: var(--accent); color: #fff; box-shadow: 0 2px 8px rgba(0,0,237,.3); }
+.login-box .lang-switch { position: absolute; top: 14px; right: 14px; margin: 0; }
+
+/* ══ MÓVIL: barra de navegación inferior ══ */
+@media (max-width: 768px) {
+  .sidebar { position: fixed; left: 0; right: 0; bottom: 0; width: 100% !important; height: calc(64px + env(safe-area-inset-bottom));
+    flex-direction: row; overflow: hidden; border-right: 0 !important; border-top: 1px solid var(--border);
+    padding-bottom: env(safe-area-inset-bottom); z-index: 30; box-shadow: 0 -6px 24px rgba(0,0,237,.08); }
+  .nav-section { display: flex; flex: 1; padding: 6px; gap: 4px; }
+  .nav-label { display: none; }
+  .nav-item { flex: 1; flex-direction: column; justify-content: center; gap: 2px !important; padding: 6px 2px !important; font-size: 10px; text-align: center; }
+  .nav-item .icon { font-size: 19px; width: auto; }
+  .app-body { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .app-header { padding-left: 12px; padding-right: 12px; }
+  .lang-switch { margin-right: 6px; }
+  .btn-logout { padding: 5px 9px; }
+  .toast-container { bottom: calc(76px + env(safe-area-inset-bottom)); right: 12px; left: 12px; }
+}
 </style>
 </head>
 <body>
@@ -312,6 +362,7 @@ tbody td.muted { color: var(--muted); }
 <!-- ── LOGIN ── -->
 <div id="login-screen">
   <div class="login-box">
+    <div class="lang-switch"><button data-lang="eu">EU</button><button data-lang="es">ES</button></div>
     <div class="login-logo">
       <div class="club-name">⚽ Goiztiri <span>FS</span></div>
       <div class="club-sub">Panel de Gestión · Junta Directiva</div>
@@ -330,6 +381,7 @@ tbody td.muted { color: var(--muted); }
   <header class="app-header">
     <div class="brand">⚽ <span>Goiztiri</span> FS</div>
     <div class="header-spacer"></div>
+    <div class="lang-switch"><button data-lang="eu">EU</button><button data-lang="es">ES</button></div>
     <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
   </header>
   <div class="app-body">
@@ -669,6 +721,210 @@ if (session) {
   document.getElementById('app').classList.add('visible');
   window.addEventListener('DOMContentLoaded', initApp);
 }
+
+
+// ════════════════════════════════════════════════════════════
+// IDIOMA · Euskera / Castellano
+// ════════════════════════════════════════════════════════════
+const I18N_EU = {
+"Socios": "Bazkideak",
+"Jugadores": "Jokalariak",
+"Campus": "Campusa",
+"Colaboradores": "Laguntzaileak",
+"Gestión": "Kudeaketa",
+"Cerrar sesión": "Saioa itxi",
+"Entrar": "Sartu",
+"Contraseña": "Pasahitza",
+"Introduce la contraseña": "Idatzi pasahitza",
+"Panel de Gestión · Junta Directiva": "Kudeaketa panela · Zuzendaritza batzordea",
+"Email": "Emaila",
+"Buscar socio...": "Bilatu bazkidea...",
+"Buscar jugador...": "Bilatu jokalaria...",
+"Buscar participante...": "Bilatu parte-hartzailea...",
+"Buscar colaborador...": "Bilatu laguntzailea...",
+"Cancelar": "Utzi",
+"Guardar": "Gorde",
+"Eliminar": "Ezabatu",
+"🗑 Eliminar": "🗑 Ezabatu",
+"¿Confirmar acción?": "Ekintza baieztatu?",
+"Cargando...": "Kargatzen...",
+"Todos": "Denak",
+"Todos los jugadores": "Jokalari guztiak",
+"Aficionados": "Zaleak",
+"Directiva": "Zuzendaritza",
+"Jugador": "Jokalaria",
+"Categoría": "Kategoria",
+"Alergias": "Alergiak",
+"Apellidos": "Abizenak",
+"Año nac.": "Jaio-urtea",
+"Banco": "Banku-datuak",
+"Campus activo:": "Campus aktiboa:",
+"Contacto": "Kontaktua",
+"Cuota": "Kuota",
+"Dorsal": "Dortsala",
+"Empadronado": "Erroldatua",
+"Equipo": "Taldea",
+"Equipos": "Taldeak",
+"Establecimiento": "Establezimendua",
+"Estado": "Egoera",
+"F. Nacimiento": "Jaiotza-data",
+"Forma pago": "Ordainketa modua",
+"NIF": "IFZ",
+"DNI": "NAN",
+"Nombre": "Izena",
+"Nuevo equipo": "Talde berria",
+"Nuevo registro": "Erregistro berria",
+"Nº": "Zk.",
+"Talla": "Neurria",
+"Teléfono": "Telefonoa",
+"Teléfonos": "Telefonoak",
+"＋ Inscripción": "＋ Izen-ematea",
+"＋ Nuevo campus": "＋ Campus berria",
+"＋ Nuevo colaborador": "＋ Laguntzaile berria",
+"＋ Nuevo jugador": "＋ Jokalari berria",
+"＋ Nuevo socio": "＋ Bazkide berria",
+"No hay colaboradores registrados": "Ez dago laguntzailerik erregistratuta",
+"No hay jugadores en este equipo": "Ez dago jokalaririk talde honetan",
+"No hay participantes inscritos": "Ez dago izena emandako parte-hartzailerik",
+"No hay socios que mostrar": "Ez dago bazkiderik erakusteko",
+"Abonado IMD": "IMD abonatua",
+"IMD Abonado": "IMD abonatua",
+"Activo": "Aktibo",
+"Activo (Exento)": "Aktibo (salbuetsia)",
+"Apellidos *": "Abizenak *",
+"Año nacimiento": "Jaiotze-urtea",
+"Baja": "Baja",
+"Camiseta ent.": "Entrenamendu elastikoa",
+"Camiseta jug.": "Jokalari elastikoa",
+"Colaborador activo": "Laguntzaile aktiboa",
+"Colaborador eliminado.": "Laguntzailea ezabatu da.",
+"Consentimiento datos": "Datuen baimena",
+"Consentimiento imagen": "Irudiaren baimena",
+"Consentimientos": "Baimenak",
+"Cuota (€)": "Kuota (€)",
+"Descripción": "Deskribapena",
+"El nombre es obligatorio": "Izena derrigorrezkoa da",
+"Eliminar colaborador": "Ezabatu laguntzailea",
+"Eliminar jugador": "Ezabatu jokalaria",
+"Eliminar participante": "Ezabatu parte-hartzailea",
+"Eliminar socio": "Ezabatu bazkidea",
+"Email contacto": "Harremanetarako emaila",
+"Empadronado en Santurtzi": "Santurtzin erroldatua",
+"Entrenador": "Entrenatzailea",
+"Fecha fin": "Amaiera-data",
+"Fecha inicio": "Hasiera-data",
+"Fecha mutua": "Mutuaren data",
+"Forma de pago": "Ordainketa modua",
+"Inactivo": "Inaktibo",
+"Jugador activo": "Jokalari aktiboa",
+"Jugador eliminado.": "Jokalaria ezabatu da.",
+"Lugar nacimiento": "Jaiotza-lekua",
+"Medias": "Galtzerdiak",
+"Menor de 8 años (exento)": "8 urtetik beherakoa (salbuetsia)",
+"Mochila": "Motxila",
+"Nombre *": "Izena *",
+"Nombre / Establecimiento *": "Izena / Establezimendua *",
+"Nombre completo *": "Izen-abizenak *",
+"Nombre del campus *": "Campusaren izena *",
+"Nombre del equipo *": "Taldearen izena *",
+"Nombre y apellidos son obligatorios": "Izena eta abizenak derrigorrezkoak dira",
+"Nombre y primer apellido son obligatorios": "Izena eta lehen abizena derrigorrezkoak dira",
+"Nº Socio *": "Bazkide zk. *",
+"Nº Socio y Nombre son obligatorios": "Bazkide zenbakia eta izena derrigorrezkoak dira",
+"Observaciones": "Oharrak",
+"Otro deporte": "Beste kirol bat",
+"Pantalón": "Praka",
+"Participante eliminado.": "Parte-hartzailea ezabatu da.",
+"Persona de contacto": "Harremanetarako pertsona",
+"Peto": "Txalekoa",
+"Población": "Herria",
+"Primer apellido *": "Lehen abizena *",
+"Segundo apellido": "Bigarren abizena",
+"Socio activo": "Bazkide aktiboa",
+"Socio eliminado.": "Bazkidea ezabatu da.",
+"Sudadera": "Jertsea",
+"Talla camiseta": "Elastikoaren neurria",
+"Tallas equipación": "Ekipamenduaren neurriak",
+"Temporada": "Denboraldia",
+"IBAN · Entidad · Sucursal · D.C. · Nº Cuenta": "IBAN · Erakundea · Sukurtsala · KD · Kontu zk.",
+"Editar socio": "Editatu bazkidea",
+"Editar jugador": "Editatu jokalaria",
+"Editar campus": "Editatu campusa",
+"Editar colaborador": "Editatu laguntzailea",
+"Editar equipo": "Editatu taldea",
+"Editar participante": "Editatu parte-hartzailea",
+"Nuevo socio": "Bazkide berria",
+"Nuevo jugador": "Jokalari berria",
+"Nuevo campus": "Campus berria",
+"Nuevo colaborador": "Laguntzaile berria",
+"Nueva inscripción": "Izen-ematea berria",
+"Sin equipo": "Talderik gabe",
+"Sí": "Bai",
+"No": "Ez",
+"Socio actualizado ✔": "Bazkidea eguneratu da ✔",
+"Socio añadido ✔": "Bazkidea gehitu da ✔",
+"Jugador actualizado ✔": "Jokalaria eguneratu da ✔",
+"Jugador añadido ✔": "Jokalaria gehitu da ✔",
+"Equipo actualizado ✔": "Taldea eguneratu da ✔",
+"Equipo creado ✔": "Taldea sortu da ✔",
+"Campus actualizado ✔": "Campusa eguneratu da ✔",
+"Campus creado ✔": "Campusa sortu da ✔",
+"Participante actualizado ✔": "Parte-hartzailea eguneratu da ✔",
+"Inscripción registrada ✔": "Izen-ematea erregistratu da ✔",
+"Colaborador actualizado ✔": "Laguntzailea eguneratu da ✔",
+"Colaborador añadido ✔": "Laguntzailea gehitu da ✔"
+};
+const I18N_PAT = [["^Total: (.*)$", "Guztira: $1"], ["^Activos: (.*)$", "Aktiboak: $1"], ["^Bajas: (.*)$", "Bajak: $1"], ["^Inscritos: (.*)$", "Izen-emanak: $1"], ["^¿Eliminar a \"(.*)\" permanentemente\\?$", "\"$1\" betiko ezabatu nahi duzu?"], ["^¿Eliminar a? ?\"(.*)\"\\?$", "\"$1\" ezabatu nahi duzu?"], ["^Error cargando (socios|jugadores|campus|colaboradores): (.*)$", "Errorea kargatzean: $2"], ["^Error: (.*)$", "Errorea: $1"]].map(([r, t]) => [new RegExp(r), t]);
+let LANG = 'es';
+try { LANG = localStorage.getItem('lang') || ((navigator.language||'').startsWith('eu') ? 'eu' : 'es'); } catch (e) {}
+const _orig = new WeakMap();
+const _attrs = ['placeholder', 'title'];
+function trEU(str) {
+  const m = str.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  const core = m[2];
+  if (!core) return str;
+  let out = I18N_EU[core];
+  if (out === undefined) for (const [re, t] of I18N_PAT) if (re.test(core)) { out = core.replace(re, t); break; }
+  return out === undefined ? str : m[1] + out + m[3];
+}
+function i18nNode(root) {
+  if (!root) return;
+  const walk = n => {
+    if (n.nodeType === 3) {
+      if (!_orig.has(n) || (_orig.get(n).es !== n.data && _orig.get(n).eu !== n.data)) _orig.set(n, { es: n.data, eu: null });
+      const o = _orig.get(n);
+      if (LANG === 'eu') { o.eu = trEU(o.es); n.data = o.eu; } else { n.data = o.es; }
+      return;
+    }
+    if (n.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA)$/.test(n.tagName)) return;
+    for (const a of _attrs) if (n.hasAttribute(a)) {
+      const k = 'o' + a;
+      if (n.dataset[k] === undefined || (LANG === 'es' ? false : n.getAttribute(a) !== trEU(n.dataset[k]) && n.getAttribute(a) !== n.dataset[k])) n.dataset[k] = n.getAttribute(a);
+      n.setAttribute(a, LANG === 'eu' ? trEU(n.dataset[k]) : n.dataset[k]);
+    }
+    n.childNodes.forEach(walk);
+  };
+  walk(root);
+}
+const _mo = new MutationObserver(muts => {
+  _mo.disconnect();
+  for (const m of muts) {
+    if (m.type === 'characterData') i18nNode(m.target);
+    else m.addedNodes.forEach(i18nNode);
+  }
+  _mo.observe(document.body, { childList: true, characterData: true, subtree: true });
+});
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem('lang', l); } catch (e) {}
+  document.documentElement.lang = l;
+  document.querySelectorAll('.lang-switch button').forEach(b => b.classList.toggle('on', b.dataset.lang === l));
+  _mo.disconnect();
+  i18nNode(document.body);
+  _mo.observe(document.body, { childList: true, characterData: true, subtree: true });
+}
+document.addEventListener('click', e => { const b = e.target.closest('.lang-switch button'); if (b) setLang(b.dataset.lang); });
+setLang(LANG);
 
 // ════════════════════════════════════════════════════════════
 // APP STATE
