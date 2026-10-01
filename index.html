@@ -355,6 +355,20 @@ tbody tr:hover td { background: rgba(0,0,237,.04); }
   .btn-logout { padding: 5px 9px; }
   .toast-container { bottom: calc(76px + env(safe-area-inset-bottom)); right: 12px; left: 12px; }
 }
+
+/* ══ DATOS SENSIBLES ══ */
+.btn-sens { background: var(--raised); color: var(--accent); font-weight: 600; font-size: 12px; padding: 6px 12px; border-radius: 999px; margin-right: 10px; border: 1px solid transparent; }
+.btn-sens:hover { border-color: var(--accent); }
+.btn-sens.open { background: var(--accent); color: #fff; }
+.lock-field { padding: 9px 12px; border: 1px dashed var(--border); border-radius: 8px; background: var(--raised); color: var(--muted); font-size: 12px; }
+.sens-overlay { position: fixed; inset: 0; background: rgba(0,0,40,.55); z-index: 1100; display: none; align-items: center; justify-content: center; padding: 16px; }
+.sens-overlay.open { display: flex; }
+.sens-box { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 24px 60px rgba(0,0,60,.35); }
+.sens-title { font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+.sens-box p { color: var(--muted); font-size: 12px; margin-bottom: 14px; line-height: 1.5; }
+.sens-box input { width: 100%; padding: 10px 12px; margin-bottom: 10px; background: var(--raised); border: 1px solid var(--border); border-radius: 8px; color: var(--text); }
+.sens-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+@media (max-width: 768px) { .btn-sens { margin-right: 6px; padding: 6px 9px; } .btn-sens .lbl { display: none; } }
 </style>
 </head>
 <body>
@@ -381,6 +395,7 @@ tbody tr:hover td { background: rgba(0,0,237,.04); }
   <header class="app-header">
     <div class="brand">⚽ <span>Goiztiri</span> FS</div>
     <div class="header-spacer"></div>
+    <button class="btn-sens" id="btn-sens" onclick="toggleSens()"><span id="sens-ico">🔒</span> <span class="lbl" id="sens-lbl">Datos sensibles</span></button>
     <div class="lang-switch"><button data-lang="eu">EU</button><button data-lang="es">ES</button></div>
     <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
   </header>
@@ -606,6 +621,21 @@ tbody tr:hover td { background: rgba(0,0,237,.04); }
   </div>
 </div>
 
+<!-- ── DESBLOQUEO DATOS SENSIBLES ── -->
+<div id="sens-overlay" class="sens-overlay">
+  <div class="sens-box">
+    <div class="sens-title">🔒 Datos sensibles</div>
+    <p>Acceso restringido. Introduce el usuario autorizado para ver IBAN, DNI, fechas de nacimiento, alergias y observaciones.</p>
+    <input type="email" id="sens-email" placeholder="Usuario autorizado (email)" autocomplete="off">
+    <input type="password" id="sens-pw" placeholder="Contraseña" autocomplete="new-password">
+    <div class="login-error" id="sens-error"></div>
+    <div class="sens-actions">
+      <button class="btn" onclick="closeSensModal()" style="background:var(--raised);color:var(--text)">Cancelar</button>
+      <button class="btn btn-primary" onclick="doUnlock()">Desbloquear</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── TOASTS ── -->
 <div class="toast-container" id="toasts"></div>
 
@@ -666,12 +696,12 @@ const sb = {
     if (opts.limit)   params.push(`limit=${opts.limit}`);
     if (params.length) url += '?' + params.join('&');
 
-    const token = await getToken();
+    const token = opts.sens ? await getTokenSens() : await getToken();
     const headers = {
       'apikey': SUPABASE_KEY,
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
+      'Prefer': opts.prefer || 'return=representation'
     };
     if (method === 'GET') headers['Accept'] = 'application/json';
 
@@ -727,6 +757,11 @@ if (session) {
 // IDIOMA · Euskera / Castellano
 // ════════════════════════════════════════════════════════════
 const I18N_EU = {
+"Datos sensibles":"Datu sentikorrak","Bloquear datos":"Blokeatu datuak","Desbloquear":"Desblokeatu","🔒 Datos protegidos":"🔒 Babestutako datuak",
+"Acceso restringido. Introduce el usuario autorizado para ver IBAN, DNI, fechas de nacimiento, alergias y observaciones.":"Sarbide mugatua. Idatzi erabiltzaile baimenduaren datuak IBAN, NAN, jaiotza-data, alergiak eta oharrak ikusteko.",
+"Usuario autorizado (email)":"Erabiltzaile baimendua (emaila)","Este usuario no tiene permiso":"Erabiltzaile honek ez du baimenik","Usuario o contraseña incorrectos":"Erabiltzaile edo pasahitz okerra",
+"Datos sensibles desbloqueados":"Datu sentikorrak desblokeatuta","Datos sensibles bloqueados":"Datu sentikorrak blokeatuta","Datos sensibles bloqueados por inactividad":"Datu sentikorrak blokeatuta, jarduerarik ez delako",
+"🔒 Datos protegidos · desbloquéalos con el usuario autorizado":"🔒 Babestutako datuak · desblokeatu erabiltzaile baimenduarekin","Lugar nacimiento":"Jaiotza-lekua","DNI":"NAN",
 "Socios": "Bazkideak",
 "Jugadores": "Jokalariak",
 "Campus": "Campusa",
@@ -926,6 +961,102 @@ function setLang(l) {
 document.addEventListener('click', e => { const b = e.target.closest('.lang-switch button'); if (b) setLang(b.dataset.lang); });
 setLang(LANG);
 
+
+// ════════════════════════════════════════════════════════════
+// DATOS SENSIBLES · segundo usuario y contraseña
+// Solo en memoria (se pierde al recargar) y se bloquea solo a los 10 min sin actividad.
+// La protección real la dan las políticas RLS de Supabase (es_privilegiado()).
+// ════════════════════════════════════════════════════════════
+let sens = null, sensTimer = null;
+const SENS = {
+  socios:        { table: 'socios_bancarios',    pk: 'idsocio',         cols: ['ban_iban','ban_entidad','ban_sucursal','ban_dc','ban_cuenta'] },
+  jugadores:     { table: 'jugadores_privados',  pk: 'id_jugador',      cols: ['dni','fecha_nacimiento','lugar_nacimiento'] },
+  participantes: { table: 'participantes_salud', pk: 'id_participante', cols: ['alergias','observaciones'] },
+};
+const sv = v => sens ? (v || '—') : '🔒';
+const lockGroup = label => `<div class="form-group"><label>${label}</label><div class="lock-field">🔒 Datos protegidos</div></div>`;
+const LOCK_BOX = '<div class="lock-field" style="margin-bottom:8px">🔒 Datos protegidos · desbloquéalos con el usuario autorizado</div>';
+
+async function getTokenSens() {
+  if (!sens) throw new Error('Datos sensibles bloqueados');
+  if (Date.now() > sens.exp - 60000) {
+    try {
+      const d = await authRequest('refresh_token', { refresh_token: sens.rt });
+      sens = { at: d.access_token, rt: d.refresh_token, exp: Date.now() + (d.expires_in || 3600) * 1000 };
+    } catch (e) { lockSens(); throw new Error('Sesión de datos sensibles caducada'); }
+  }
+  return sens.at;
+}
+function paintSens() {
+  const b = document.getElementById('btn-sens');
+  if (!b) return;
+  b.classList.toggle('open', !!sens);
+  document.getElementById('sens-ico').textContent = sens ? '🔓' : '🔒';
+  document.getElementById('sens-lbl').textContent = sens ? 'Bloquear datos' : 'Datos sensibles';
+}
+function bumpSensTimer() {
+  clearTimeout(sensTimer);
+  if (sens) sensTimer = setTimeout(() => { lockSens(); toast('Datos sensibles bloqueados por inactividad', 'error'); }, 10 * 60 * 1000);
+}
+['click', 'keydown'].forEach(ev => document.addEventListener(ev, bumpSensTimer));
+async function refreshSens() {
+  try {
+    await loadSocios();
+    if (state.equiposJug.length) await loadJugadores();
+    if (state.campusList.length) await loadParticipantes();
+  } catch (e) {}
+}
+function lockSens() {
+  sens = null; clearTimeout(sensTimer); paintSens();
+  closeDrawer(); refreshSens();
+}
+function toggleSens() {
+  if (sens) { lockSens(); toast('Datos sensibles bloqueados'); return; }
+  document.getElementById('sens-error').textContent = '';
+  document.getElementById('sens-email').value = ''; document.getElementById('sens-pw').value = '';
+  document.getElementById('sens-overlay').classList.add('open');
+  document.getElementById('sens-email').focus();
+}
+function closeSensModal() { document.getElementById('sens-overlay').classList.remove('open'); }
+async function doUnlock() {
+  const email = document.getElementById('sens-email').value.trim();
+  const pw = document.getElementById('sens-pw').value;
+  const err = document.getElementById('sens-error');
+  err.textContent = '';
+  try {
+    const d = await authRequest('password', { email, password: pw });
+    sens = { at: d.access_token, rt: d.refresh_token, exp: Date.now() + (d.expires_in || 3600) * 1000 };
+    const ok = await sb.post('rpc/es_privilegiado', { body: {}, sens: true });
+    if (ok !== true) { sens = null; err.textContent = 'Este usuario no tiene permiso'; return; }
+    closeSensModal(); paintSens(); bumpSensTimer(); await refreshSens();
+    toast('Datos sensibles desbloqueados');
+  } catch (e) {
+    sens = null; err.textContent = 'Usuario o contraseña incorrectos';
+  }
+  document.getElementById('sens-pw').value = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('sens-overlay').classList.contains('open')) doUnlock();
+});
+async function mergeSens(kind, rows) {
+  if (!sens) return rows;
+  const c = SENS[kind];
+  try {
+    const extra = await sb.get(c.table, { select: '*', sens: true });
+    const m = new Map(extra.map(x => [x[c.pk], x]));
+    rows.forEach(r => Object.assign(r, m.get(r[c.pk]) || {}));
+  } catch (e) { toast('Error datos sensibles: ' + e.message, 'error'); }
+  return rows;
+}
+async function saveSens(kind, id, obj) {
+  if (!sens || !id) return;
+  const c = SENS[kind];
+  const body = { [c.pk]: id };
+  c.cols.forEach(k => { if (obj[k] !== undefined) body[k] = obj[k]; });
+  if (Object.keys(body).length < 2) return;
+  await sb.post(c.table, { body, sens: true, filter: 'on_conflict=' + c.pk, prefer: 'resolution=merge-duplicates,return=representation' });
+}
+
 // ════════════════════════════════════════════════════════════
 // APP STATE
 // ════════════════════════════════════════════════════════════
@@ -1024,7 +1155,7 @@ function renderDrawerContent(mode, rec) {
         <input type="checkbox" id="f-activo" ${!rec||rec?.activo?'checked':''}> Socio activo
       </label>
       <div class="form-section-title" style="color:var(--gold)">🏦 Datos bancarios (opcional)</div>
-      <div class="bank-section">
+      ${!sens ? LOCK_BOX : `<div class="bank-section">
         <div class="bank-grid">
           <input id="f-ban_iban" placeholder="ES00" maxlength="4" value="${rec?.ban_iban||''}">
           <input id="f-ban_entidad" placeholder="0000" maxlength="4" value="${rec?.ban_entidad||''}">
@@ -1033,7 +1164,7 @@ function renderDrawerContent(mode, rec) {
           <input id="f-ban_cuenta" placeholder="Nº cuenta (10 dígitos)" maxlength="10" value="${rec?.ban_cuenta||''}">
         </div>
         <div style="font-size:10px;color:var(--muted);margin-top:6px">IBAN · Entidad · Sucursal · D.C. · Nº Cuenta</div>
-      </div>`;
+      </div>`}`;
   }
 
   else if (mode === 'jugador') {
@@ -1046,11 +1177,11 @@ function renderDrawerContent(mode, rec) {
       </div>
       <div class="form-row">
         <div class="form-group"><label>Segundo apellido</label><input id="f-apellido2" value="${rec?.apellido2||''}"></div>
-        <div class="form-group"><label>DNI</label><input id="f-dni" value="${rec?.dni||''}"></div>
+        ${sens ? `<div class="form-group"><label>DNI</label><input id="f-dni" value="${rec?.dni||''}"></div>` : lockGroup('DNI')}
       </div>
       <div class="form-row">
-        <div class="form-group"><label>F. Nacimiento</label><input id="f-fecha_nacimiento" type="date" value="${rec?.fecha_nacimiento||''}"></div>
-        <div class="form-group"><label>Lugar nacimiento</label><input id="f-lugar_nacimiento" value="${rec?.lugar_nacimiento||''}"></div>
+        ${sens ? `<div class="form-group"><label>F. Nacimiento</label><input id="f-fecha_nacimiento" type="date" value="${rec?.fecha_nacimiento||''}"></div>` : lockGroup('F. Nacimiento')}
+        ${sens ? `<div class="form-group"><label>Lugar nacimiento</label><input id="f-lugar_nacimiento" value="${rec?.lugar_nacimiento||''}"></div>` : lockGroup('Lugar nacimiento')}
       </div>
       <div class="form-row">
         <div class="form-group"><label>Teléfono</label><input id="f-telefono" value="${rec?.telefono||''}"></div>
@@ -1123,9 +1254,9 @@ function renderDrawerContent(mode, rec) {
       </div>
       <div class="form-group"><label>Email contacto</label><input id="f-email_contacto" type="email" value="${rec?.email_contacto||''}"></div>
       <div class="form-group"><label>Teléfonos</label><input id="f-telefonos" value="${rec?.telefonos||''}" placeholder="653 74 18 67 Ama"></div>
-      <div class="form-group"><label>Alergias</label><input id="f-alergias" value="${rec?.alergias||''}"></div>
+      ${sens ? `<div class="form-group"><label>Alergias</label><input id="f-alergias" value="${rec?.alergias||''}"></div>` : lockGroup('Alergias')}
       <div class="form-group"><label>Otro deporte</label><input id="f-otro_deporte" value="${rec?.otro_deporte||''}"></div>
-      <div class="form-group"><label>Observaciones</label><textarea id="f-observaciones">${rec?.observaciones||''}</textarea></div>
+      ${sens ? `<div class="form-group"><label>Observaciones</label><textarea id="f-observaciones">${rec?.observaciones||''}</textarea></div>` : lockGroup('Observaciones')}
       <div class="form-section-title">Consentimientos</div>
       <label class="checkbox-label" style="margin-bottom:8px">
         <input type="checkbox" id="f-empadronado_santurtzi" ${rec?.empadronado_santurtzi?'checked':''}> Empadronado en Santurtzi
@@ -1185,15 +1316,19 @@ async function saveDrawer() {
         num_socio: num, nombre: nom, categoria: getField('f-categoria'),
         menor_8_anos: getField('f-menor_8_anos'), activo: getField('f-activo'),
         telefono: getField('f-telefono'), email: getField('f-email'),
+      };
+      const sensData = {
         ban_iban: getField('f-ban_iban'), ban_entidad: getField('f-ban_entidad'),
         ban_sucursal: getField('f-ban_sucursal'), ban_dc: getField('f-ban_dc'),
         ban_cuenta: getField('f-ban_cuenta'),
       };
+      let sid = rec?.idsocio;
       if (rec) {
         await sb.patch('socios', { filter: `idsocio=eq.${rec.idsocio}`, body: { ...data, updated_at: new Date().toISOString() } });
       } else {
-        await sb.post('socios', { body: data });
+        const r = await sb.post('socios', { body: data }); sid = r[0].idsocio;
       }
+      await saveSens('socios', sid, sensData);
       closeDrawer(); await loadSocios(); toast(rec ? 'Socio actualizado ✔' : 'Socio añadido ✔');
     }
 
@@ -1202,8 +1337,7 @@ async function saveDrawer() {
       if (!nom || !ap1) { toast('Nombre y primer apellido son obligatorios', 'error'); return; }
       const data = {
         nombre: nom, apellido1: ap1, apellido2: getField('f-apellido2'),
-        dni: getField('f-dni'), fecha_nacimiento: getField('f-fecha_nacimiento'),
-        lugar_nacimiento: getField('f-lugar_nacimiento'), poblacion: getField('f-poblacion'),
+        poblacion: getField('f-poblacion'),
         telefono: getField('f-telefono'), fecha_mutua: getField('f-fecha_mutua'),
         id_equipo: getField('f-id_equipo') || null, dorsal: getField('f-dorsal'),
         imd_abonado: getField('f-imd_abonado'), activo: getField('f-activo'),
@@ -1212,11 +1346,14 @@ async function saveDrawer() {
         talla_pantalon: getField('f-talla_pantalon'), talla_medias: getField('f-talla_medias'),
         talla_peto: getField('f-talla_peto'),
       };
+      const sensData = { dni: getField('f-dni'), fecha_nacimiento: getField('f-fecha_nacimiento'), lugar_nacimiento: getField('f-lugar_nacimiento') };
+      let sid = rec?.id_jugador;
       if (rec) {
         await sb.patch('jugadores', { filter: `id_jugador=eq.${rec.id_jugador}`, body: { ...data, updated_at: new Date().toISOString() } });
       } else {
-        await sb.post('jugadores', { body: data });
+        const r = await sb.post('jugadores', { body: data }); sid = r[0].id_jugador;
       }
+      await saveSens('jugadores', sid, sensData);
       closeDrawer(); await loadJugadores(); toast(rec ? 'Jugador actualizado ✔' : 'Jugador añadido ✔');
     }
 
@@ -1251,18 +1388,21 @@ async function saveDrawer() {
       const data = {
         nombre: nom, apellidos: ap, email_contacto: getField('f-email_contacto'),
         anio_nacimiento: getField('f-anio_nacimiento'), talla_camiseta: getField('f-talla_camiseta'),
-        telefonos: getField('f-telefonos'), alergias: getField('f-alergias'),
-        otro_deporte: getField('f-otro_deporte'), observaciones: getField('f-observaciones'),
+        telefonos: getField('f-telefonos'),
+        otro_deporte: getField('f-otro_deporte'),
         empadronado_santurtzi: getField('f-empadronado_santurtzi'), abonado_imd: getField('f-abonado_imd'),
         consentimiento_datos: getField('f-consentimiento_datos'), consentimiento_imagen: getField('f-consentimiento_imagen'),
       };
+      const sensData = { alergias: getField('f-alergias'), observaciones: getField('f-observaciones') };
+      let sidNew = null;
       if (rec) {
         await sb.patch('participantes', { filter: `id_participante=eq.${rec.id_participante}`, body: { ...data, updated_at: new Date().toISOString() } });
       } else {
         const part = await sb.post('participantes', { body: data });
-        const pid = Array.isArray(part) ? part[0].id_participante : part.id_participante;
+        const pid = Array.isArray(part) ? part[0].id_participante : part.id_participante; sidNew = pid;
         if (campusId) await sb.post('inscripciones', { body: { id_campus: campusId, id_participante: pid, fecha_inscripcion: new Date().toISOString() } });
       }
+      await saveSens('participantes', rec ? rec.id_participante : sidNew, sensData);
       closeDrawer(); await loadParticipantes(); toast(rec ? 'Participante actualizado ✔' : 'Inscripción registrada ✔');
     }
 
@@ -1318,7 +1458,7 @@ async function loadSocios() {
   document.getElementById('loading-socios').style.display = 'block';
   document.getElementById('empty-socios').style.display = 'none';
   try {
-    state.socios = await sb.get('socios', { select: '*', order: 'num_socio.asc' });
+    state.socios = await mergeSens('socios', await sb.get('socios', { select: '*', order: 'num_socio.asc' }));
     filterSocios();
   } catch(e) { toast('Error cargando socios: ' + e.message, 'error'); }
   document.getElementById('loading-socios').style.display = 'none';
@@ -1358,7 +1498,7 @@ function renderSocios() {
     const estadoBadge = s.activo
       ? (s.menor_8_anos ? '<span class="badge badge-blue">Activo (Exento)</span>' : '<span class="badge badge-green">Activo</span>')
       : '<span class="badge badge-red">Baja</span>';
-    const bancoBadge = s.ban_iban
+    const bancoBadge = !sens ? '<span class="muted" style="font-size:12px">🔒</span>' : s.ban_iban
       ? `<button class="btn-bank" onclick="showBank(event,${s.idsocio})">🔒 Ver</button>`
       : '<span class="muted" style="color:var(--muted);font-size:12px">—</span>';
     const catBadge = s.categoria === 'Directiva' ? 'badge-gold' : s.categoria === 'Jugador' ? 'badge-blue' : 'badge-gray';
@@ -1414,7 +1554,7 @@ async function loadJugadores() {
       sb.get('jugadores', { select: '*', order: 'apellido1.asc' }),
     ]);
     state.equiposJug = equipos;
-    state.jugadores  = jugadores;
+    state.jugadores  = await mergeSens('jugadores', jugadores);
     renderTeamsSidebar();
     filterJugadores();
   } catch(e) { toast('Error cargando jugadores: ' + e.message, 'error'); }
@@ -1473,7 +1613,7 @@ function renderJugadores() {
     return `<tr onclick="selectJugador(${j.id_jugador})" ondblclick="openDrawer('jugador',getJugador(${j.id_jugador}))" id="row-jug-${j.id_jugador}">
       <td><b>${j.dorsal||'—'}</b></td>
       <td>${nombre}</td>
-      <td class="muted">${j.fecha_nacimiento||'—'}</td>
+      <td class="muted">${sv(j.fecha_nacimiento)}</td>
       <td class="muted">${j.telefono||'—'}</td>
       <td>${eq ? `<span class="badge badge-blue">${eq.nombre}</span>` : '<span class="muted">—</span>'}</td>
       <td>${estadoBadge}</td>
@@ -1524,7 +1664,7 @@ async function loadParticipantes() {
     const inscripciones = await sb.get('inscripciones', { select: 'id_participante', filter: `id_campus=eq.${campusId}` });
     const ids = inscripciones.map(i => i.id_participante);
     if (!ids.length) { state.participantes = []; state.partFilt = []; renderParticipantes(); return; }
-    state.participantes = await sb.get('participantes', { select: '*', filter: `id_participante=in.(${ids.join(',')})`, order: 'apellidos.asc' });
+    state.participantes = await mergeSens('participantes', await sb.get('participantes', { select: '*', filter: `id_participante=in.(${ids.join(',')})`, order: 'apellidos.asc' }));
     filterParticipantes();
   } catch(e) { toast('Error: ' + e.message, 'error'); }
 }
@@ -1553,7 +1693,7 @@ function renderParticipantes() {
       <td class="muted">${p.talla_camiseta||'—'}</td>
       <td>${p.empadronado_santurtzi ? '<span class="badge badge-green">Sí</span>' : '<span class="badge badge-gray">No</span>'}</td>
       <td>${p.abonado_imd ? '<span class="badge badge-blue">Sí</span>' : '<span class="badge badge-gray">No</span>'}</td>
-      <td class="muted" style="font-size:12px">${p.alergias||'—'}</td>
+      <td class="muted" style="font-size:12px">${sv(p.alergias)}</td>
     </tr>`).join('');
 }
 
